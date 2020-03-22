@@ -9,7 +9,7 @@ pub use self::message::Message;
 
 use log::*;
 use std::collections::VecDeque;
-use std::io::{ErrorKind as IoErrorKind, Read, Write};
+use std::io::{ErrorKind as IoErrorKind, Read, Write, Result as IoResult};
 use std::mem::replace;
 
 use self::frame::coding::{CloseCode, Control as OpCtl, Data as OpData, OpCode};
@@ -17,6 +17,7 @@ use self::frame::{Frame, FrameCodec};
 use self::message::{IncompleteMessage, IncompleteMessageType};
 use crate::error::{Error, Result};
 use crate::util::NonBlockingResult;
+use crate::stream::NoDelay;
 
 /// Indicates a Client or Server role of the websocket
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -205,6 +206,14 @@ impl<Stream: Read + Write> WebSocket<Stream> {
     /// is returned from `read_message` or `write_pending`.
     pub fn close(&mut self, code: Option<CloseFrame>) -> Result<()> {
         self.context.close(&mut self.socket, code)
+    }
+}
+
+impl<Stream: NoDelay> WebSocket<Stream> {
+
+    /// Set TCP_NODELAY (disable packet aggregation)
+    pub fn set_nodelay(&mut self, nodelay: bool) -> IoResult<()> {
+        self.socket.set_nodelay(nodelay)
     }
 }
 
