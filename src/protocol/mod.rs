@@ -147,6 +147,11 @@ impl<Stream: Read + Write> WebSocket<Stream> {
         self.context.read_message(&mut self.socket)
     }
 
+    // Try to read message from stream ONCE. Will not block.
+    pub fn try_read_message(&mut self) -> Result<Option<Message>> {
+        self.context.try_read_message(&mut self.socket)
+    }
+
     /// Send a message to stream, if possible.
     ///
     /// WebSocket will buffer a configurable number of messages at a time, except to reply to Ping
@@ -300,6 +305,21 @@ impl WebSocketContext {
                 return Ok(message);
             }
         }
+    }
+
+    pub fn try_read_message<Stream>(&mut self, stream: &mut Stream) -> Result<Option<Message>>
+    where
+        Stream: Read + Write,
+    {
+        // Do not read from already closed connections.
+        self.state.check_active()?;
+
+        // Since we may get ping or close, we need to reply to the messages even during read.
+        // Thus we call write_pending() but ignore its blocking.
+        self.write_pending(stream).no_block()?;
+        // If we get here, either write blocks or we have nothing to write.
+        // Thus if read blocks, just let it return WouldBlock.
+        self.read_message_frame(stream)?
     }
 
     /// Send a message to the provided stream, if possible.
