@@ -147,7 +147,7 @@ impl<Stream: Read + Write> WebSocket<Stream> {
         self.context.read_message(&mut self.socket)
     }
 
-    // Try to read message from stream ONCE. Will not block.
+    /// Try to read message from stream ONCE. Will not block.
     pub fn try_read_message(&mut self) -> Result<Option<Message>> {
         self.context.try_read_message(&mut self.socket)
     }
@@ -307,6 +307,7 @@ impl WebSocketContext {
         }
     }
 
+    /// Try to read message. Doesn't block.
     pub fn try_read_message<Stream>(&mut self, stream: &mut Stream) -> Result<Option<Message>>
     where
         Stream: Read + Write,
@@ -319,7 +320,7 @@ impl WebSocketContext {
         self.write_pending(stream).no_block()?;
         // If we get here, either write blocks or we have nothing to write.
         // Thus if read blocks, just let it return WouldBlock.
-        self.read_message_frame(stream)?
+        self.read_message_frame(stream)
     }
 
     /// Send a message to the provided stream, if possible.
